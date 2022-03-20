@@ -14,5 +14,4 @@ func main() {
     L.SetWriter(os.Stdout)
     L.Info(ActionLog.F{"code": 10, "playerId": "aaa"}, "hello \n", "world")
     L.Info(ActionLog.F{"code": 11, "playerId": "bbb"})
-    
 }

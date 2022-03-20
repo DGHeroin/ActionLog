@@ -29,7 +29,6 @@ func (e *Entry) WithFields(fields F) *Entry {
     }
     return e
 }
-
 func (e *Entry) Info(args ...interface{}) {
     if len(args) == 0 {
         return
