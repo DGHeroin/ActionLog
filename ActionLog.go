@@ -1,68 +1,95 @@
 package ActionLog
 
 import (
-    "github.com/sirupsen/logrus"
+    "bytes"
     "io"
-    "io/ioutil"
+    "os"
     "sync"
     "time"
 )
 
 type (
     ActionLog struct {
-        mutex          sync.Mutex
-        log            *logrus.Logger
+        mutex          sync.RWMutex
         pool           sync.Pool
-        standardFields logrus.Fields
-        sh             *speedyHook
+        standardFields F
+        hooks          []Hook
+        writer         io.Writer
+        formatter      Formatter
     }
     F map[string]interface{}
 )
 
 func New(fields ...F) *ActionLog {
-    log := logrus.New()
-    log.SetOutput(ioutil.Discard)
-    log.SetFormatter(&nullFormatter{})
-    sh := &speedyHook{
-        w: ioutil.Discard,
-    }
-    log.AddHook(sh)
-    
     L := &ActionLog{
-        log: log,
-        sh:  sh,
+        writer:         os.Stdout,
+        formatter:      &defaultFormatter{},
+        standardFields: map[string]interface{}{},
     }
-    if len(fields) == 1 {
-        var fs map[string]interface{} = fields[0]
-        L.standardFields = fs
-        sh.standardFields = fs
+    for _, field := range fields {
+        for k, v := range field {
+            L.standardFields[k] = v
+        }
     }
     L.pool.New = func() interface{} {
-        return &logrus.Entry{
-            Data: make(logrus.Fields, 6),
+        return &Entry{
+            Data:   make(F),
+            Buffer: &bytes.Buffer{},
         }
     }
     return L
 }
 func (a *ActionLog) SetWriter(w io.Writer) {
-    a.sh.w = w
+    a.writer = w
 }
 func (a *ActionLog) Info(fields F, args ...interface{}) {
-    var ff map[string]interface{} = fields
-    
     entry := a.allocEntry()
     
-    entry.WithTime(time.Now()).WithFields(ff).WithFields(ff).Info(args...)
+    entry.WithTime(time.Now()).WithFields(a.standardFields).WithFields(fields).Info(args...)
+    a.fire(entry)
+    a.write(entry)
     
     a.freeEntry(entry)
 }
-func (a *ActionLog) allocEntry() *logrus.Entry {
-    entry := a.pool.Get().(*logrus.Entry)
-    entry.Logger = a.log
+func (a *ActionLog) allocEntry() *Entry {
+    entry := a.pool.Get().(*Entry)
     return entry
 }
 
-func (a *ActionLog) freeEntry(entry *logrus.Entry) {
+func (a *ActionLog) freeEntry(entry *Entry) {
     entry.Data = map[string]interface{}{}
+    entry.Buffer.Reset()
     a.pool.Put(entry)
+}
+func (a *ActionLog) fire(entry *Entry) {
+    a.mutex.RLock()
+    defer a.mutex.RUnlock()
+    if len(a.hooks) == 0 {
+        return
+    }
+    for _, hook := range a.hooks {
+        err := hook.Fire(entry)
+        if err != nil {
+            return
+        }
+    }
+}
+func (a *ActionLog) AddHook(hook Hook) {
+    if hook == nil {
+        return
+    }
+    a.mutex.Lock()
+    defer a.mutex.Unlock()
+    a.hooks = append(a.hooks, hook)
+}
+
+func (a *ActionLog) write(entry *Entry) {
+    data, err := a.formatter.Format(entry)
+    if err != nil {
+        return
+    }
+    _, err = a.writer.Write(data)
+    if err != nil {
+        return
+    }
 }
