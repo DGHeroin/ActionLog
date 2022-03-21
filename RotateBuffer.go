@@ -3,7 +3,6 @@ package ActionLog
 import (
     "bytes"
     "compress/gzip"
-    "fmt"
     "io/ioutil"
     "sync/atomic"
     "time"
@@ -53,7 +52,6 @@ func (b *RotateBuffer) rotate() {
     if b.enableGzip {
         compressedData, err := b.Compress(data)
         if err != nil {
-            fmt.Println(err)
             return
         }
         data = compressedData

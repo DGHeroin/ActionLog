@@ -12,7 +12,6 @@ type (
         Time    time.Time
         Message string
         Buffer  *bytes.Buffer
-
     }
 )
 
