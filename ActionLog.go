@@ -84,6 +84,8 @@ func (a *ActionLog) AddHook(hook Hook) {
 }
 
 func (a *ActionLog) write(entry *Entry) {
+    a.mutex.Lock()
+    defer a.mutex.Unlock()
     data, err := a.formatter.Format(entry)
     if err != nil {
         return

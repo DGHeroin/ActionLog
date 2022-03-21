@@ -9,23 +9,25 @@ import (
 
 func main() {
     t0()
-    t1()
+   // t1()
 }
-func t0()  {
+func t0() {
     buf := ActionLog.NewRotateBuffer()
-    //buf.EnableGzip(false)
+    buf.EnableGzip(false)
     sumSize := 0
     sumT := time.Duration(0)
     sumItem := 0
     sumRaw := 0
     buf.OnRotate(func(data []byte, t0, t1 time.Time, num int) {
         dt := t1.Sub(t0)
-        raw, err := buf.Decompress(data)
-        fmt.Println("rotate size:", len(data), len(raw), err, dt, num)
-        sumSize += len(data)
+        raw, _ := buf.Decompress(data)
+        sz := len(data)
+        szRaw := len(raw)
+        fmt.Println("rotate size:", ActionLog.HumanFileSize(float64(sz)), ActionLog.HumanFileSize(float64(szRaw)), dt, num)
+        sumSize += sz
         sumT += dt
         sumItem += num
-        sumRaw += len(raw)
+        sumRaw += szRaw
     })
     
     L := ActionLog.New()
@@ -38,24 +40,31 @@ func t0()  {
     }
     buf.Flush()
     
-    fmt.Println("elapsed time:", time.Since(startTime), sumSize, sumT, sumItem, sumRaw)
+    fmt.Println("elapsed time:", time.Since(startTime),
+        ActionLog.HumanFileSize(float64(sumSize)),
+        ActionLog.HumanFileSize(float64(sumRaw)),
+        sumT,
+        sumItem,
+    )
 }
 
-func t1()  {
+func t1() {
     buf := ActionLog.NewRotateBuffer()
     //buf.EnableGzip(false)
     sumSize := 0
     sumT := time.Duration(0)
     sumItem := 0
-    sumRaw:=0
+    sumRaw := 0
     buf.OnRotate(func(data []byte, t0, t1 time.Time, num int) {
         dt := t1.Sub(t0)
-        raw, err := buf.Decompress(data)
-        fmt.Println("rotate size:", len(data), len(raw), err, dt, num)
-        sumSize += len(data)
+        raw, _ := buf.Decompress(data)
+        sz := len(data)
+        szRaw := len(raw)
+        fmt.Println("rotate size:", ActionLog.HumanFileSize(float64(sz)), ActionLog.HumanFileSize(float64(szRaw)), dt, num)
+        sumSize += sz
         sumT += dt
         sumItem += num
-        sumRaw += len(raw)
+        sumRaw += szRaw
     })
     
     L := ActionLog.New()
@@ -77,5 +86,10 @@ func t1()  {
     wg.Wait()
     buf.Flush()
     
-    fmt.Println("elapsed time:", time.Since(startTime), sumSize, sumT, sumItem, sumRaw)
+    fmt.Println("elapsed time:", time.Since(startTime),
+        ActionLog.HumanFileSize(float64(sumSize)),
+        ActionLog.HumanFileSize(float64(sumRaw)),
+        sumT,
+        sumItem,
+    )
 }

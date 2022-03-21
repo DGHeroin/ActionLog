@@ -43,6 +43,9 @@ func (b *RotateBuffer) rotate() {
     if b.onRotate == nil {
         return
     }
+    if b.buf.Len() == 0 {
+        return
+    }
     data := b.buf.Bytes()
     if b.enableGzip {
         compressedData, err := b.Compress(data)
