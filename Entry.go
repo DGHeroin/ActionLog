@@ -12,6 +12,7 @@ type (
         Time    time.Time
         Message string
         Buffer  *bytes.Buffer
+
     }
 )
 
@@ -33,5 +34,5 @@ func (e *Entry) Info(args ...interface{}) {
     if len(args) == 0 {
         return
     }
-    e.Message = fmt.Sprint(args)
+    e.Message = fmt.Sprint(args...)
 }

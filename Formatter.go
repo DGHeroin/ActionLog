@@ -1,7 +1,7 @@
 package ActionLog
 
 import (
-    "github.com/json-iterator/go"
+    jsoniter "github.com/json-iterator/go"
 )
 
 type (
@@ -19,10 +19,10 @@ func (d defaultFormatter) Format(entry *Entry) ([]byte, error) {
     }
     data["time"] = entry.Time
     data["msg"] = entry.Message
-    var json = jsoniter.ConfigCompatibleWithStandardLibrary
+    var json = jsoniter.ConfigFastest
     bin, err := json.Marshal(&data)
     if err != nil {
-        return nil, err
+       return nil, err
     }
     return append(bin, '\n'), nil
 }

@@ -39,12 +39,13 @@ func t0() {
         L.Info(ActionLog.F{"code": 10, "playerId": "aaa"}, "hello \n", "world")
     }
     buf.Flush()
-    
-    fmt.Println("elapsed time:", time.Since(startTime),
+    elapsedTime := time.Since(startTime)
+    fmt.Println("elapsed time:", elapsedTime,
         ActionLog.HumanFileSize(float64(sumSize)),
         ActionLog.HumanFileSize(float64(sumRaw)),
         sumT,
         sumItem,
+        sumItem / int(elapsedTime*time.Second),
     )
 }
 

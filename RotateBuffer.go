@@ -15,6 +15,7 @@ type (
         MaxSize    int
         enableGzip bool
         onRotate   func(buffer []byte, t0, t1 time.Time, num int)
+        onWrite    func([]byte)
         t0         time.Time
         c          int32
     }
@@ -34,7 +35,9 @@ func (b *RotateBuffer) Write(p []byte) (n int, err error) {
     if num == 1 {
         b.t0 = time.Now()
     }
-    
+    if b.onWrite != nil {
+        b.onWrite(p)
+    }
     return b.buf.Write(p)
 }
 
@@ -55,7 +58,7 @@ func (b *RotateBuffer) rotate() {
         }
         data = compressedData
     }
-    
+
     if b.onRotate != nil && len(data) > 0 {
         b.onRotate(data, b.t0, time.Now(), int(b.c))
     }
@@ -65,13 +68,26 @@ func (b *RotateBuffer) rotate() {
 func (b *RotateBuffer) Flush() {
     b.rotate()
 }
-
+func (b *RotateBuffer) Current() []byte {
+    data := b.buf.Bytes()
+    if b.enableGzip {
+        compressedData, err := b.Compress(data)
+        if err != nil {
+            return nil
+        }
+        data = compressedData
+    }
+    return data
+}
 func (b *RotateBuffer) EnableGzip(enable bool) {
     b.enableGzip = enable
 }
 
 func (b *RotateBuffer) OnRotate(fn func(buffer []byte, t0, t1 time.Time, num int)) {
     b.onRotate = fn
+}
+func (b *RotateBuffer) OnWrite(fn func([]byte)) {
+    b.onWrite = fn
 }
 func (b *RotateBuffer) Compress(data []byte) ([]byte, error) {
     var buf bytes.Buffer
