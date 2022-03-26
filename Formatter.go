@@ -17,9 +17,9 @@ func (d defaultFormatter) Format(entry *Entry) ([]byte, error) {
     for k, v := range entry.Data {
         data[k] = v
     }
-    data["time"] = entry.Time
+    data["time"] = entry.Time.String()
     data["msg"] = entry.Message
-    var json = jsoniter.ConfigFastest
+    var json = jsoniter.ConfigCompatibleWithStandardLibrary
     bin, err := json.Marshal(&data)
     if err != nil {
        return nil, err
