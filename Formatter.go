@@ -24,5 +24,5 @@ func (d defaultFormatter) Format(entry *Entry) ([]byte, error) {
     if err != nil {
        return nil, err
     }
-    return append(bin, '\n'), nil
+    return append(bin, ',', '\n'), nil
 }
