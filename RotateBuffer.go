@@ -2,15 +2,15 @@ package ActionLog
 
 import (
     "bytes"
-    "compress/gzip"
-    "io/ioutil"
+    "sync"
     "sync/atomic"
     "time"
 )
 
 type (
     RotateBuffer struct {
-        buf        bytes.Buffer
+        mu         sync.Mutex
+        buf        *bytes.Buffer
         MaxSize    int
         enableGzip bool
         onRotate   func(buffer []byte, t0, t1 time.Time, num int)
@@ -22,11 +22,14 @@ type (
 
 func NewRotateBuffer() *RotateBuffer {
     return &RotateBuffer{
-        MaxSize:    10 * 1000 * 1000, // 100M
+        buf:        &bytes.Buffer{},
+        MaxSize:    100 * 1000 * 1000, // 100M
         enableGzip: true,
     }
 }
 func (b *RotateBuffer) Write(p []byte) (n int, err error) {
+    b.mu.Lock()
+    defer b.mu.Unlock()
     if b.buf.Len()+len(p) > b.MaxSize {
         b.rotate()
     }
@@ -41,25 +44,14 @@ func (b *RotateBuffer) Write(p []byte) (n int, err error) {
 }
 
 func (b *RotateBuffer) rotate() {
-    defer b.buf.Reset()
-    if b.onRotate == nil {
-        return
+    b.mu.Lock()
+    defer b.mu.Unlock()
+    if b.onRotate != nil && b.buf.Len() > 0 {
+        rBuf := &bytes.Buffer{}
+        rBuf.Write(b.buf.Bytes())
+        go b.onRotate(rBuf.Bytes(), b.t0, time.Now(), int(b.c))
     }
-    if b.buf.Len() == 0 {
-        return
-    }
-    data := b.buf.Bytes()
-    if b.enableGzip {
-        compressedData, err := b.Compress(data)
-        if err != nil {
-            return
-        }
-        data = compressedData
-    }
-
-    if b.onRotate != nil && len(data) > 0 {
-        b.onRotate(data, b.t0, time.Now(), int(b.c))
-    }
+    b.buf = &bytes.Buffer{}
     atomic.StoreInt32(&b.c, 0)
 }
 
@@ -67,18 +59,11 @@ func (b *RotateBuffer) Flush() {
     b.rotate()
 }
 func (b *RotateBuffer) Current() []byte {
-    data := b.buf.Bytes()
-    if b.enableGzip {
-        compressedData, err := b.Compress(data)
-        if err != nil {
-            return nil
-        }
-        data = compressedData
-    }
-    return data
-}
-func (b *RotateBuffer) EnableGzip(enable bool) {
-    b.enableGzip = enable
+    b.mu.Lock()
+    defer b.mu.Unlock()
+    buf := &bytes.Buffer{}
+    buf.Write(b.buf.Bytes())
+    return buf.Bytes()
 }
 
 func (b *RotateBuffer) OnRotate(fn func(buffer []byte, t0, t1 time.Time, num int)) {
@@ -86,25 +71,4 @@ func (b *RotateBuffer) OnRotate(fn func(buffer []byte, t0, t1 time.Time, num int
 }
 func (b *RotateBuffer) OnWrite(fn func([]byte)) {
     b.onWrite = fn
-}
-func (b *RotateBuffer) Compress(data []byte) ([]byte, error) {
-    var buf bytes.Buffer
-    w := gzip.NewWriter(&buf)
-    if _, err := w.Write(data); err != nil {
-        return nil, err
-    }
-    err := w.Close()
-    return buf.Bytes(), err
-}
-func (b *RotateBuffer) Decompress(data []byte) ([]byte, error) {
-    r, err := gzip.NewReader(bytes.NewReader(data))
-    if err != nil {
-        return nil, err
-    }
-    if raw, err := ioutil.ReadAll(r); err != nil {
-        return nil, err
-    } else {
-        err = r.Close()
-        return raw, err
-    }
 }
