@@ -64,9 +64,11 @@ func (b *RotateBuffer) rotate() {
         rBuf.WriteString("\n]")
         b.wg.Add(1)
         num := int(b.c)
+        t0 := b.t0
+        t1 := time.Now()
         go func() {
             defer b.wg.Done()
-            b.onRotate(rBuf.Bytes(), b.t0, time.Now(), num)
+            b.onRotate(rBuf.Bytes(), t0, t1, num)
         }()
     }
     b.buf = &bytes.Buffer{}
