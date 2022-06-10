@@ -19,6 +19,7 @@ func t0() {
     sumSize := 0
     sumT := time.Duration(0)
     sumItem := 0
+
     buf.OnRotate(func(data []byte, t0, t1 time.Time, num int) {
         dt := t1.Sub(t0)
         sz := len(data)
@@ -34,14 +35,15 @@ func t0() {
 
         err := ioutil.WriteFile(key, data, os.ModePerm)
         if err != nil {
-           fmt.Println(err)
-           return
+            fmt.Println(err)
+            return
         }
-
     })
 
     L := ActionLog.New()
     L.SetWriter(buf)
+    L.Formatter().SetPrefix(`{ "index" : { "_index" : "default" } }
+`)
     defer buf.Flush()
 
     startTime := time.Now()
@@ -62,7 +64,7 @@ func t0() {
 
 func t1() {
     buf := ActionLog.NewRotateBuffer()
-    //buf.EnableGzip(false)
+    // buf.EnableGzip(false)
     sumSize := 0
     sumT := time.Duration(0)
     sumItem := 0

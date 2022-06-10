@@ -48,7 +48,7 @@ func (b *RotateBuffer) Write(p []byte) (n int, err error) {
     }
     b.mu.Lock()
     defer b.mu.Unlock()
-    //data := append(p, ',')
+    // data := append(p, ',')
     return b.buf.Write(p)
 }
 
@@ -57,11 +57,9 @@ func (b *RotateBuffer) rotate() {
     defer b.mu.Unlock()
     if b.onRotate != nil && b.buf.Len() > 0 {
         rBuf := &bytes.Buffer{}
-        rBuf.WriteString("[\n")
         data := b.buf.Bytes()
         data = data[:len(data)-2]
         rBuf.Write(data)
-        rBuf.WriteString("\n]")
         b.wg.Add(1)
         num := int(b.c)
         t0 := b.t0

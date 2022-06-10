@@ -44,11 +44,11 @@ func (a *ActionLog) SetWriter(w io.Writer) {
 }
 func (a *ActionLog) Info(fields F, args ...interface{}) {
     entry := a.allocEntry()
-    
+
     entry.WithTime(time.Now()).WithFields(a.standardFields).WithFields(fields).Info(args...)
     a.fire(entry)
     a.write(entry)
-    
+
     a.freeEntry(entry)
 }
 func (a *ActionLog) allocEntry() *Entry {
@@ -94,4 +94,8 @@ func (a *ActionLog) write(entry *Entry) {
     if err != nil {
         return
     }
+}
+
+func (a *ActionLog) Formatter() Formatter {
+    return a.formatter
 }
