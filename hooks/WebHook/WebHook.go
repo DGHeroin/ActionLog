@@ -49,12 +49,8 @@ func (h *webHook) Fire(entry *ActionLog.Entry) error {
     if entry.Message != "" {
         data["msg"] = entry.Message
     }
-    var json = jsoniter.ConfigCompatibleWithStandardLibrary
-    bin, err := json.Marshal(&data)
-    if err != nil {
-        return err
-    }
-    h.buf.Add(T(bin))
+
+    h.buf.Add(T(data))
     return nil
 }
 func (h *webHook) AddHook(url string, fn func(*ActionLog.Entry) bool) {

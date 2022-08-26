@@ -1,12 +1,13 @@
 package WebHook
 
 import (
+    "github.com/DGHeroin/ActionLog"
     "sync"
     "time"
 )
 
 type (
-    T      string
+    T      ActionLog.F
     buffer struct {
         mutex   sync.RWMutex
         buffer  []T
